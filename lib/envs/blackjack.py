@@ -1,6 +1,13 @@
-import gym
-from gym import spaces
-from gym.utils import seeding
+# updated gym with gymnasium
+
+#import gym
+import gymnasium as gym
+
+# from gym import spaces
+from gymnasium import spaces
+
+# from gym.utils import seeding
+from gymnasium.utils import seeding
 
 def cmp(a, b):
     return int((a > b)) - int((a < b))
