@@ -29,6 +29,10 @@ def plot_value_function(V, title="Value Function"):
     """
     Plots the value function as a surface plot.
     """
+    
+    # for key in V.keys():
+    #     print(key)
+    #     print(type(key))
     min_x = min(k[0] for k in V.keys())
     max_x = max(k[0] for k in V.keys())
     min_y = min(k[1] for k in V.keys())

@@ -57,5 +57,6 @@ class DiscreteEnv(Env):
         i = categorical_sample([t[0] for t in transitions], self.np_random)
         p, s, r, d = transitions[i]
         self.s = s
+        # print('next state is ', s)
         self.lastaction = a
         return (int(s), r, d, {"prob": p})

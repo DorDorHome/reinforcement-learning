@@ -5,12 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python with Gymnaisum: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+            "python": "/Users/shufaichan/anaconda3/envs/RL_with_gymnasium/bin/python"
         }
     ]
 }

@@ -10,7 +10,10 @@ import gymnasium as gym
 import numpy as np
 import sys
 
-from . import discrete
+try:
+    from . import discrete
+except:
+    import discrete
 
 UP = 0
 RIGHT = 1
@@ -75,11 +78,11 @@ class RandomWalk(discrete.DiscreteEnv):
         else:
             self.drift_vector_prob = {
 
-                np.array([0,1]): 0.25, #RIGHT
-                np.array([0, -1]): 0.25, #LEFT
-                np.array([1, 0]): 0.25,#DOWN
-                np.array([-1, 0]): 0.25,#UP
-                np.array([0, 0]): 0  #STAY
+                (0,1): 0.25, #RIGHT
+                (0, -1): 0.25, #LEFT
+                (1, 0): 0.25,#DOWN
+                (-1, 0): 0.25,#UP
+                (0, 0): 0  #STAY
             }
 
         print('drift vector prob:', self.drift_vector_prob)
@@ -94,69 +97,41 @@ class RandomWalk(discrete.DiscreteEnv):
         # create the states according to the shape given (and thus nA)
         # and store them in an array to give it a natural geometric structure:
         grid = np.arange(nS).reshape(shape)
-
+        self.grid = grid
         # check
-        assert isinstance(positive_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
-        assert isinstance(negative_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
-        # check terminal shape and grid shape the same:
-        assert grid.shape == positive_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
-        assert grid.shape == negative_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
-        overlap = np.logical_and(positive_terminal_states, negative_terminal_states)
-        assert not overlap.any(), "positive and neg term states overlapped!"
+        if positive_terminal_states:
+            assert isinstance(positive_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
+            # check terminal shape and grid shape the same:
+            assert grid.shape == positive_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
+        if negative_terminal_states:
+            assert isinstance(negative_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
+            assert grid.shape == negative_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
+        if positive_terminal_states and negative_terminal_states:
+            overlap = np.logical_and(positive_terminal_states, negative_terminal_states)
+            assert not overlap.any(), "positive and neg term states overlapped!"
 
 
         # set location of terminal state:
-        terminal_reward = np.zeros(shape, dtype =np.bool)
+        terminal_reward = np.zeros(shape)
         if positive_terminal_states == None:
-            # set default terminal states to be the top left
-            terminal_reward[0][0] = reward_into_pos_term_states
+            # set default terminal states to be the bottom right
+            terminal_reward[shape[0]-1, shape[1]-1] = reward_into_pos_term_states
         else:
             terminal_reward[positive_terminal_states] = reward_into_pos_term_states
 
         
         if negative_terminal_states == None:
-            # set default terminal states to be the bottom right:
-            terminal_reward[shape[0]-1, shape[1]-1] = reward_into_neg_term_states
+            # set default terminal states to be the top left:
+            terminal_reward[0,0] = reward_into_neg_term_states
         else:
             terminal_reward[negative_terminal_states] =reward_into_neg_term_states
 
-        print('here is the world, with 1 indicating positive terminal states.\
-              and -1 indicating negative terminal states: ')
+        print(f'here is the world, with {reward_into_pos_term_states} indicating positive terminal states.\
+              and {reward_into_neg_term_states} indicating negative terminal states: ')
         print_board(terminal_reward)
-        self.terminal_reward
-        # set up the transition probabilities:
-        it = np.nditer(grid, flags = ['multi_index'])
+        self.terminal_reward = terminal_reward
 
-        while not it.finished:
-            s = it.iterindex # get the state
-            y, x = it.multi_index # get the coordinates of the state
-            #y is vertical dimension and x is horizontal
-
-            # each state allows equal number of actions:
-            P[s] = {a: [ ] for a in range(nA) }
-
-            # to check whether s is a terminal state:
-            is_done = bool(terminal_reward[y][x])
-            if is_done:
-                P[s][UP] = [(1.0, s, True, 0)]
-                P[s][DOWN] = [(1.0, s, True, 0)]
-                P[s][RIGHT] = [(1.0, s, True, 0)]
-                P[s][LEFT] = [(1.0, s, True, 0)]
-                P[s][STAY] = [(1.0, s, True, 0)]
-
-            # the reward and whether a state is 
-            else:
-                P[s][UP] = self._get_transition_prob_from_combined_effect(s, np.array([-1, 0]),drift_vector_prob )
-                print('initial position: [',  y, x, ']' )
-                print('action: up')
-                print('transition probability: ', P[s][UP] )
-                p[s][DOWN] = self._get_transition_prob_from_combined_effect(s, np.array([1, 0]),drift_vector_prob )
-                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),drift_vector_prob )
-                P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),drift_vector_prob )
-                p[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),drift_vector_prob )
-
-            it.iternext()
-
+        # set up reset state distribution:
         if initial_state_distribution == None:
             isd = np.zeros(shape)
             print('initializing position is in middle')
@@ -170,6 +145,51 @@ class RandomWalk(discrete.DiscreteEnv):
             isd = np.array(initial_state_distribution)
             # check this is a probability distribution:
             assert isd.sum() ==1, 'Please enter a probability distribution! Prob should add up to one.'
+        print('probability disbribution for starting state: ', isd)
+
+
+
+
+
+        # set up the transition probabilities:
+
+
+
+        it = np.nditer(grid, flags = ['multi_index'])
+
+        while not it.finished:
+            s = it.iterindex # get the state
+            y, x = it.multi_index # get the coordinates of the state
+            #y is vertical dimension and x is horizontal
+            print('state is ', s)
+            print('pos is ', y ,x)
+            # each state allows equal number of actions:
+            P[s] = {a: [ ] for a in range(nA) }
+
+            # to check whether s is a terminal state:
+            is_done = bool(terminal_reward[y][x])
+            print('is done:', is_done)
+            if is_done:
+                
+                P[s][UP] = [(1.0, s, 0, True)]
+                P[s][DOWN] = [(1.0, s,  0, True)]
+                P[s][RIGHT] = [(1.0, s,  0, True)]
+                P[s][LEFT] = [(1.0, s,  0, True)]
+                P[s][STAY] = [(1.0, s,  0, True)]
+
+            # the reward and whether a state is 
+            else:
+                P[s][UP] = self._get_transition_prob_from_combined_effect(s, np.array([-1, 0]),self.drift_vector_prob )
+                print('initial position: [',  y, x, ']' )
+                print('action: up')
+                print('transition probability: ', P[s][UP] )
+                P[s][DOWN] = self._get_transition_prob_from_combined_effect(s, np.array([1, 0]),self.drift_vector_prob )
+                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),self.drift_vector_prob )
+                P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),self.drift_vector_prob )
+                P[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),self.drift_vector_prob )
+
+            it.iternext()
+
 
                    # We expose the model of the environment for educational purposes
         # This should not be used in any model-free learning algorithm 
@@ -200,7 +220,7 @@ class RandomWalk(discrete.DiscreteEnv):
         
         drift_prob:
         the effect of drifting, as a dictionary
-            keys: drift direction, in int64
+            keys: drift direction (tuple), in int64
             values: probability of that drift direction.     
         """
 
@@ -208,19 +228,22 @@ class RandomWalk(discrete.DiscreteEnv):
         transition_list = []
         for drift in drift_prob:
             # next position is the combined effect of current position and drift:
-            next_pos = self._limit_coordinates(current_pos + drift).astype(int)
+            next_pos = tuple(self._limit_coordinates(current_pos + np.array(drift)).astype(int))
             # accumlate the pobability 
             if next_pos in next_pos_to_prob:
-                next_pos_to_prob[next_pos] +=drift_prob[drift]
+                # note that there, next_pos is a tuple
+                next_pos_to_prob[next_pos] +=drift_prob[drift] # drift is also a tuple
             else:
                 next_pos_to_prob[next_pos] = drift_prob[drift]
         
         # finally, get a list of all (probability, state, reward, done):
         for next_pos in next_pos_to_prob:
-            reward = terminal_reward[next_pos[0], next_pos[1]]
+            reward = self.terminal_reward[next_pos[0], next_pos[1]]
+            print(f'reward from {current_pos} to {next_pos} is {reward}')
             done = bool(reward)
-            transition_list.append((next_pos_to_prob[next_pos], next_pos, reward, done ))
-        transition_list
+            next_pos_in_s = self.grid[next_pos[0], next_pos[1]]
+            transition_list.append((next_pos_to_prob[next_pos], next_pos_in_s, reward, done ))
+        return transition_list
         
     def _render(self, mode = 'human', close = False):
         """ Renders the current grid layout for random walk
@@ -275,7 +298,8 @@ class RandomWalk(discrete.DiscreteEnv):
 # helper function for printing game board:
         
 def print_board(board):
-    chars = { -1: 'lose', 0: '0', 1: 'win' }
+    print('ugly print of board', board)
+    chars = { -0.01: 'lose', 0: '0', 1: 'win' }
     hline = '-' * (board.shape[1] * 4 - 1)
     
     for i, row in enumerate(board):
