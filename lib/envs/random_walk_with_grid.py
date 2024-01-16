@@ -72,11 +72,11 @@ class RandomWalk(discrete.DiscreteEnv):
         else:
             self.drift_vector_prob = {
 
-                np.array([0,1]): 0.25, 
-                np.array([0, -1]): 0.25,
-                np.array([1, 0]): 0.25,
-                np.array([-1, 0]): 0.25,
-                np.array([0, 0]): 0
+                np.array([0,1]): 0.25, #RIGHT
+                np.array([0, -1]): 0.25, #LEFT
+                np.array([1, 0]): 0.25,#DOWN
+                np.array([-1, 0]): 0.25,#UP
+                np.array([0, 0]): 0  #STAY
             }
 
     
@@ -103,44 +103,55 @@ class RandomWalk(discrete.DiscreteEnv):
 
 
         # set location of terminal state:
-        terminal = np.zeros(shape, dtype =np.bool)
+        terminal_reward = np.zeros(shape, dtype =np.bool)
         if positive_terminal_states == None:
             # set default terminal states to be the top left
-            terminal[0][0] = 1
+            terminal_reward[0][0] = reward_into_pos_term_states
         else:
-            terminal[positive_terminal_states] = True
+            terminal_reward[positive_terminal_states] = reward_into_pos_term_states
 
         
         if negative_terminal_states == None:
             # set default terminal states to be the bottom right:
-            terminal[shape[0]-1, shape[1]-1] = True
+            terminal_reward[shape[0]-1, shape[1]-1] = reward_into_neg_term_states
+        else:
+            terminal_reward[negative_terminal_states] =reward_into_neg_term_states
 
         print('here is the world, with 1 indicating positive terminal states.\
               and -1 indicating negative terminal states: ')
-        print()
+        print_board(terminal_reward)
 
         # set up the transition probabilities:
         it = np.nditer(grid, flags = ['multi_index'])
 
         while not it.finished:
-            s = it.iterindex
-            y, x = it.multi_index # y is vertical dimension
+            s = it.iterindex # get the state
+            y, x = it.multi_index # get the coordinates of the state
+            #y is vertical dimension and x is horizontal
 
             # each state allows equal number of actions:
             P[s] = {a: [ ] for a in range(nA) }
 
             # to check whether s is a terminal state:
-            is_done = terminal[y][x]
+            is_done = bool(terminal_reward[y][x])
+            if is_done:
+                P[s][UP] = [(1.0, s, True, 0)]
+                P[s][DOWN] = [(1.0, s, True, 0)]
+                P[s][RIGHT] = [(1.0, s, True, 0)]
+                P[s][LEFT] = [(1.0, s, True, 0)]
+                P[s][STAY] = [(1.0, s, True, 0)]
 
-            # We're stuck in a terminal state
-            if is_done(s):
-                P[s][UP] = [(1.0, s, 0, True)]
-                P[s][RIGHT] = [(1.0, s, 0, True)]
-                P[s][DOWN] = [(1.0, s, 0, True)]
-                P[s][LEFT] = [(1.0, s, 0, True)]
-
-            # if s is not a terminal state
+            # the reward and whether a state is 
             else:
+                P[s][UP] = self._get_transition_prob_from_combined_effect(s, np.array([-1, 0]),drift_vector_prob )
+                print('initial position: [',  y, x, ']' )
+                print('action: up')
+                print('transition probability: ', P[s][UP] )
+                p[s][DOWN] = self._get_transition_prob_from_combined_effect(s, np.array([1, 0]),drift_vector_prob )
+                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),drift_vector_prob )
+                P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),drift_vector_prob )
+                p[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),drift_vector_prob )
+
 
     def _limit_coordinates(self, coord):
         coord[0] = min(coord[0], self.shape[0] - 1)
@@ -149,55 +160,55 @@ class RandomWalk(discrete.DiscreteEnv):
         coord[1] = max(coord[1], 0)
         return coord
     
-    def check_positive_term(pos):
-
-
-
-
-    
-    def check_negative_term(pos): 
-
-    
-    def _calculate_transition_prob(self, curren_position ,action, drift_vector_prob):
+    def _get_transition_prob_from_combined_effect(self, current_pos, action, drift_prob):
         """
-        Given a combined effect of action plus the random drift,
-        get the (prob, new_state, reward, is_done) lists for the next state.
-        ___________
-        input:
-        current_position: 
-            numpy array of shape (2,), with integer values, y and x coordinates using index convention 
-        action:
-            numpy array of shape (2,), only five possibilities:
-            [1,0], [-1,0], [0, 1], [0, -1], [0,0] 
-        drift_vector_prob:
-        contains the probability of each drift direction, among the five possibilities:
-        [1,0], [-1,0], [0, 1], [0, -1], [0,0] 
+        current_pos: 
+        current position, in index coordinate( going down is positive), as np.array in int64
 
-
+        action: 
+        another np.array in int64
+        
+        drift_prob:
+        the effect of drifting, as a dictionary
+            keys: drift direction, in int64
+            values: probability of that drift direction.     
         """
 
-        next_pos_to_prob_reward_dict 
-        for drift_vec in drift_vector_prob:
+        next_pos_to_prob = {}
+        transition_list = []
+        for drift in drift_prob:
+            # next position is the combined effect of current position and drift:
+            next_pos = self._limit_coordinates(current_pos + drift).astype(int)
+            # accumlate the pobability 
+            if next_pos in next_pos_to_prob:
+                next_pos_to_prob[next_pos] +=drift_prob[drift]
+            else:
+                next_pos_to_prob[next_pos] = drift_prob[drift]
+        
+        # finally, get a list of all (probability, state, reward, done):
+        for next_pos in next_pos_to_prob:
+            reward = terminal_reward[next_pos[0], next_pos[1]]
+            done = bool(reward)
+            transition_list.append((next_pos_to_prob[next_pos], next_pos, reward, done ))
+        transition_list
+        
 
 
 
 
 
 
-
+# helper function for printing game board:
+        
+def print_board(board):
+    chars = { -1: 'lose', 0: '0', 1: 'win' }
+    hline = '-' * (board.shape[1] * 4 - 1)
     
-
-
-
-
-
-
-
-
-
-
-
-
-
+    for i, row in enumerate(board):
+        # Print the row with vertical separators
+        print(' | '.join(chars[val] for val in row))
+        # Print horizontal line separator after each row except the last
+        if i < board.shape[0] - 1:
+            print(hline)
 
 
