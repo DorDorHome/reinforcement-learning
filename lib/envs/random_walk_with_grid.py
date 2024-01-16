@@ -18,6 +18,8 @@ DOWN = 2
 LEFT = 3
 STAY = 4
 
+
+
 class RandomWalk(discrete.DiscreteEnv):
     """
     Creating a grid world where the transition depends on action plus a random force
@@ -51,7 +53,7 @@ class RandomWalk(discrete.DiscreteEnv):
         ## the number of actions depends on whether
         ## the grid is 1d or 2d
         ## if 1d, the number of actions is 3 (left, right, stay)
-        nA = 2**len(len(shape)) + 1
+        nA = 2**len(shape) + 1
 
         # the height of the space:
         MAX_Y = shape[0] 
@@ -80,7 +82,7 @@ class RandomWalk(discrete.DiscreteEnv):
                 np.array([0, 0]): 0  #STAY
             }
 
-    
+        print('drift vector prob:', self.drift_vector_prob)
         # create a dictionary to contain the transition prob
         # this is a nested dictionary
         # expected to contain, for each state s
@@ -155,7 +157,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
             it.iternext()
 
-        if initial_state_distribution = None:
+        if initial_state_distribution == None:
             isd = np.zeros(shape)
             print('initializing position is in middle')
             start_y = shape[0]//2
@@ -261,7 +263,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
             if x == self.shape[1] - 1:
                 outfile.write("\n")
-                
+
             it.iternext()
 
 
