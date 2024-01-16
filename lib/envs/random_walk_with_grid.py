@@ -34,7 +34,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
     def __init__(self, shape = [1, 7], positive_terminal_states = None,
                  negative_terminal_states = None, reward_into_pos_term_states = 1,
-                 reward_into_neg_term_states = -1, drift_vector_prob = None):
+                 reward_into_neg_term_states = -1, drift_vector_prob = None, initial_state_distribution = None):
         
 
 
@@ -57,6 +57,7 @@ class RandomWalk(discrete.DiscreteEnv):
         MAX_Y = shape[0] 
         # the width of the space:
         MAX_x = shape[1]
+
         if drift_vector_prob is not None :
             # check the entered drift_vector_prob adds up to one:
             check_drift_prob_sum = 0
@@ -120,7 +121,7 @@ class RandomWalk(discrete.DiscreteEnv):
         print('here is the world, with 1 indicating positive terminal states.\
               and -1 indicating negative terminal states: ')
         print_board(terminal_reward)
-
+        self.terminal_reward
         # set up the transition probabilities:
         it = np.nditer(grid, flags = ['multi_index'])
 
@@ -151,6 +152,33 @@ class RandomWalk(discrete.DiscreteEnv):
                 P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),drift_vector_prob )
                 P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),drift_vector_prob )
                 p[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),drift_vector_prob )
+
+            it.iternext()
+
+        if initial_state_distribution = None:
+            isd = np.zeros(shape)
+            print('initializing position is in middle')
+            start_y = shape[0]//2
+            start_x = shape[1]//2
+            # this is defines the initial state distribution:
+            isd[start_y, start_x] =1
+
+
+        else:
+            isd = np.array(initial_state_distribution)
+            # check this is a probability distribution:
+            assert isd.sum() ==1, 'Please enter a probability distribution! Prob should add up to one.'
+
+                   # We expose the model of the environment for educational purposes
+        # This should not be used in any model-free learning algorithm 
+        self.P = P
+        self.reward_into_pos_term_states = reward_into_pos_term_states
+        self.reward_into_neg_term_states = reward_into_neg_term_states
+        super(RandomWalk, self).__init__(nS, nA, P, isd)
+            
+
+
+
 
 
     def _limit_coordinates(self, coord):
@@ -192,6 +220,50 @@ class RandomWalk(discrete.DiscreteEnv):
             transition_list.append((next_pos_to_prob[next_pos], next_pos, reward, done ))
         transition_list
         
+    def _render(self, mode = 'human', close = False):
+        """ Renders the current grid layout for random walk
+
+         For example, a 4x4 grid with the mode="human" looks like:
+            L  o  o  o
+            o  x  o  o
+            o  o  o  o
+            o  o  o  W
+        where x is your position and T are the two terminal states.
+        """
+        if close:
+            return
+
+        outfile=io.StringIO() if mode == 'ansi' else sys.stdout
+
+        # put the state space in a grid
+        grid = np.arange(self.nS).reshape(self.shape)
+
+        it = np.nditer(grid, flags =['multi_index'])
+        while not it.finished:
+            s = it.iterindex
+            y, x = it.multi_index 
+
+            if self.s == s:
+                output = "x"
+            elif self.terminal_reward[y,x] == self.reward_into_pos_term_states :
+                output = "W"
+            elif self.terminal_reward[y,x] == self.reward_into_neg_term_states:
+                output = "L"
+            else:
+                output = "o"
+
+            if x == 0:
+                output = output.lstrip()
+            if x == self.shape[1] - 1:
+                output = output.rstrip()
+
+            outfile.write(output)
+
+            if x == self.shape[1] - 1:
+                outfile.write("\n")
+                
+            it.iternext()
+
 
 
 
