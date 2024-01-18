@@ -297,7 +297,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
 # helper function for printing game board:
         
-def print_board(board):
+def print_board(board, reward_into_neg_term_states,  ):
     print('ugly print of board', board)
     chars = { -0.01: 'lose', 0: '0', 1: 'win' }
     hline = '-' * (board.shape[1] * 4 - 1)
