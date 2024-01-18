@@ -128,7 +128,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
         print(f'here is the world, with {reward_into_pos_term_states} indicating positive terminal states.\
               and {reward_into_neg_term_states} indicating negative terminal states: ')
-        print_board(terminal_reward)
+        print_board(terminal_reward, reward_into_pos_term_states = reward_into_pos_term_states, reward_into_neg_term_states= reward_into_neg_term_states)
         self.terminal_reward = terminal_reward
 
         # set up reset state distribution:
@@ -297,9 +297,9 @@ class RandomWalk(discrete.DiscreteEnv):
 
 # helper function for printing game board:
         
-def print_board(board, reward_into_neg_term_states,  ):
+def print_board(board, reward_into_pos_term_states,  reward_into_neg_term_states):
     print('ugly print of board', board)
-    chars = { -0.01: 'lose', 0: '0', 1: 'win' }
+    chars = { reward_into_neg_term_states: 'lose', 0: '0', reward_into_pos_term_states: 'win' }
     hline = '-' * (board.shape[1] * 4 - 1)
     
     for i, row in enumerate(board):
