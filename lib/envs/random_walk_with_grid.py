@@ -15,11 +15,12 @@ try:
 except:
     import discrete
 
-UP = 0
+STAY = 0
 RIGHT = 1
-DOWN = 2
-LEFT = 3
-STAY = 4
+LEFT = 2
+UP = 3
+DOWN = 4
+
 
 
 
@@ -57,6 +58,21 @@ class RandomWalk(discrete.DiscreteEnv):
         ## the grid is 1d or 2d
         ## if 1d, the number of actions is 3 (left, right, stay)
         nA = 2**len(shape) + 1
+        action_to_action_in_array = {}
+        if nA ==1:
+            action_to_action_in_array[STAY] = np.array([ 0, 0])
+            action_to_action_in_array[RIGHT] = np.array([0, 1])
+            action_to_action_in_array[LEFT] = np.array([0,-1])
+        elif nA ==2:
+            action_to_action_in_array[STAY] = np.array([ 0, 0])
+            action_to_action_in_array[RIGHT] = np.array([0, 1])
+            action_to_action_in_array[LEFT] = np.array([0,-1])
+            action_to_action_in_array[UP] = np.array([-1, 0])
+            action_to_action_in_array[DOWN] = np.array([1,0])
+        else:
+            raise 'please check shape, only support 1d or 2d grid.'
+            
+
 
         # the height of the space:
         MAX_Y = shape[0] 
@@ -128,7 +144,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
         print(f'here is the world, with {reward_into_pos_term_states} indicating positive terminal states.\
               and {reward_into_neg_term_states} indicating negative terminal states: ')
-        print_board(terminal_reward, reward_into_pos_term_states = reward_into_pos_term_states, reward_into_neg_term_states= reward_into_neg_term_states)
+        # print_board(terminal_reward, reward_into_pos_term_states = reward_into_pos_term_states, reward_into_neg_term_states= reward_into_neg_term_states)
         self.terminal_reward = terminal_reward
 
         # set up reset state distribution:
@@ -184,10 +200,26 @@ class RandomWalk(discrete.DiscreteEnv):
                 print('action: up')
                 print('transition probability: ', P[s][UP] )
                 P[s][DOWN] = self._get_transition_prob_from_combined_effect(s, np.array([1, 0]),self.drift_vector_prob )
+                print('initial position: [',  y, x, ']' )
+                print('action: DOWN')
+                print('transition probability: ', P[s][DOWN] )
+                
                 P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),self.drift_vector_prob )
+                print('initial position: [',  y, x, ']' )
+                print('action: RIGHT')
+                print('transition probability: ', P[s][RIGHT] )
+                
                 P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),self.drift_vector_prob )
+                
+                print('initial position: [',  y, x, ']' )
+                print('action: LEFT')
+                print('transition probability: ', P[s][LEFT] )
+                
                 P[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),self.drift_vector_prob )
 
+                print('initial position: [',  y, x, ']' )
+                print('action: STAY')
+                print('transition probability: ', P[s][STAY] )
             it.iternext()
 
 
@@ -239,12 +271,15 @@ class RandomWalk(discrete.DiscreteEnv):
         # finally, get a list of all (probability, state, reward, done):
         for next_pos in next_pos_to_prob:
             reward = self.terminal_reward[next_pos[0], next_pos[1]]
-            print(f'reward from {current_pos} to {next_pos} is {reward}')
+            #print(f'reward from {current_pos} to {next_pos} is {reward}')
             done = bool(reward)
             next_pos_in_s = self.grid[next_pos[0], next_pos[1]]
             transition_list.append((next_pos_to_prob[next_pos], next_pos_in_s, reward, done ))
         return transition_list
         
+    def render(self, mode ='human', close = False):
+        self._render(mode, close)
+
     def _render(self, mode = 'human', close = False):
         """ Renders the current grid layout for random walk
 
@@ -295,18 +330,20 @@ class RandomWalk(discrete.DiscreteEnv):
 
 
 
+# abandoned: use self.render instead for better generalizations
 # helper function for printing game board:
+
         
-def print_board(board, reward_into_pos_term_states,  reward_into_neg_term_states):
-    print('ugly print of board', board)
-    chars = { reward_into_neg_term_states: 'lose', 0: '0', reward_into_pos_term_states: 'win' }
-    hline = '-' * (board.shape[1] * 4 - 1)
+# def print_board(board, reward_into_pos_term_states,  reward_into_neg_term_states):
+#     print('ugly print of board', board)
+#     chars = { reward_into_neg_term_states: 'lose', 0: '0', reward_into_pos_term_states: 'win' }
+#     hline = '-' * (board.shape[1] * 4 - 1)
     
-    for i, row in enumerate(board):
-        # Print the row with vertical separators
-        print(' | '.join(chars[val] for val in row))
-        # Print horizontal line separator after each row except the last
-        if i < board.shape[0] - 1:
-            print(hline)
+#     for i, row in enumerate(board):
+#         # Print the row with vertical separators
+#         print(' | '.join(chars[val] for val in row))
+#         # Print horizontal line separator after each row except the last
+#         if i < board.shape[0] - 1:
+#             print(hline)
 
 
