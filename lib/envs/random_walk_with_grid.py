@@ -92,14 +92,22 @@ class RandomWalk(discrete.DiscreteEnv):
                 assert isinstance(vec[1], np.int64)
             self.drift_vector_prob = drift_vector_prob
         else:
-            self.drift_vector_prob = {
+            if len(self.shape) ==2:
+                self.drift_vector_prob = {
 
-                (0,1): 0.25, #RIGHT
-                (0, -1): 0.25, #LEFT
-                (1, 0): 0.25,#DOWN
-                (-1, 0): 0.25,#UP
-                (0, 0): 0  #STAY
-            }
+                    (0,1): 0.25, #RIGHT
+                    (0, -1): 0.25, #LEFT
+                    (1, 0): 0.25,#DOWN
+                    (-1, 0): 0.25,#UP
+                    (0, 0): 0  #STAY
+                }
+            elif len(self.shape) ==1:
+                self.drift_vector_prob = {
+                    (0,1): 0.5, #RIGHT
+                    (0, -1): 0.5, #LEFT
+                    (0, 0): 0  #STAY
+                }
+
 
         print('drift vector prob:', self.drift_vector_prob)
         # create a dictionary to contain the transition prob
