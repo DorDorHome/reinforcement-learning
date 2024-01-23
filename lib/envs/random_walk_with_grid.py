@@ -58,19 +58,19 @@ class RandomWalk(discrete.DiscreteEnv):
         ## the grid is 1d or 2d
         ## if 1d, the number of actions is 3 (left, right, stay)
         nA = 2**len(shape) + 1
-        action_to_action_in_array = {}
-        if nA ==1:
-            action_to_action_in_array[STAY] = np.array([ 0, 0])
-            action_to_action_in_array[RIGHT] = np.array([0, 1])
-            action_to_action_in_array[LEFT] = np.array([0,-1])
-        elif nA ==2:
-            action_to_action_in_array[STAY] = np.array([ 0, 0])
-            action_to_action_in_array[RIGHT] = np.array([0, 1])
-            action_to_action_in_array[LEFT] = np.array([0,-1])
-            action_to_action_in_array[UP] = np.array([-1, 0])
-            action_to_action_in_array[DOWN] = np.array([1,0])
+        self.action_to_action_in_array = {}
+        if nA ==3:
+            self.action_to_action_in_array[STAY] = np.array([ 0, 0])
+            self.action_to_action_in_array[RIGHT] = np.array([0, 1])
+            self.action_to_action_in_array[LEFT] = np.array([0,-1])
+        elif nA ==5:
+            self.action_to_action_in_array[STAY] = np.array([ 0, 0])
+            self.action_to_action_in_array[RIGHT] = np.array([0, 1])
+            self.action_to_action_in_array[LEFT] = np.array([0,-1])
+            self.action_to_action_in_array[UP] = np.array([-1, 0])
+            self.action_to_action_in_array[DOWN] = np.array([1,0])
         else:
-            raise 'please check shape, only support 1d or 2d grid.'
+            raise ValueError('please check shape, only support 1d or 2d grid.')
             
 
 
@@ -176,6 +176,7 @@ class RandomWalk(discrete.DiscreteEnv):
         while not it.finished:
             s = it.iterindex # get the state
             y, x = it.multi_index # get the coordinates of the state
+            pos_np = np.array([y, x])
             #y is vertical dimension and x is horizontal
             print('state is ', s)
             print('pos is ', y ,x)
@@ -195,31 +196,31 @@ class RandomWalk(discrete.DiscreteEnv):
 
             # the reward and whether a state is 
             else:
-                P[s][UP] = self._get_transition_prob_from_combined_effect(s, np.array([-1, 0]),self.drift_vector_prob )
-                print('initial position: [',  y, x, ']' )
-                print('action: up')
-                print('transition probability: ', P[s][UP] )
-                P[s][DOWN] = self._get_transition_prob_from_combined_effect(s, np.array([1, 0]),self.drift_vector_prob )
-                print('initial position: [',  y, x, ']' )
-                print('action: DOWN')
-                print('transition probability: ', P[s][DOWN] )
+                P[s][UP] = self._get_transition_prob_from_combined_effect(pos_np, UP,self.drift_vector_prob )
+                # print('initial position: [',  y, x, ']' )
+                # print('action: up')
+                # print('transition probability: ', P[s][UP] )
+                P[s][DOWN] = self._get_transition_prob_from_combined_effect(pos_np,DOWN, self.drift_vector_prob )
+                # print('initial position: [',  y, x, ']' )
+                # print('action: DOWN')
+                # print('transition probability: ', P[s][DOWN] )
                 
-                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(s, np.array([0, 1]),self.drift_vector_prob )
-                print('initial position: [',  y, x, ']' )
-                print('action: RIGHT')
-                print('transition probability: ', P[s][RIGHT] )
+                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(pos_np, RIGHT,self.drift_vector_prob )
+                # print('initial position: [',  y, x, ']' )
+                # print('action: RIGHT')
+                # print('transition probability: ', P[s][RIGHT] )
                 
-                P[s][LEFT] = self._get_transition_prob_from_combined_effect(s, np.array([0, -1]),self.drift_vector_prob )
+                P[s][LEFT] = self._get_transition_prob_from_combined_effect(pos_np, LEFT,self.drift_vector_prob )
                 
-                print('initial position: [',  y, x, ']' )
-                print('action: LEFT')
-                print('transition probability: ', P[s][LEFT] )
+                # print('initial position: [',  y, x, ']' )
+                # print('action: LEFT')
+                # print('transition probability: ', P[s][LEFT] )
                 
-                P[s][STAY]  = self._get_transition_prob_from_combined_effect(s, np.array([0, 0]),self.drift_vector_prob )
+                P[s][STAY]  = self._get_transition_prob_from_combined_effect(pos_np, STAY,self.drift_vector_prob )
 
-                print('initial position: [',  y, x, ']' )
-                print('action: STAY')
-                print('transition probability: ', P[s][STAY] )
+                # print('initial position: [',  y, x, ']' )
+                # print('action: STAY')
+                # print('transition probability: ', P[s][STAY] )
             it.iternext()
 
 
@@ -258,16 +259,23 @@ class RandomWalk(discrete.DiscreteEnv):
 
         next_pos_to_prob = {}
         transition_list = []
+        print('starting state position: ', current_pos)
+        print('start calculating transition prob....')
+ 
         for drift in drift_prob:
             # next position is the combined effect of current position and drift:
-            next_pos = tuple(self._limit_coordinates(current_pos + np.array(drift)).astype(int))
+            print('before limiting coord: ',current_pos +self.action_to_action_in_array[action]+np.array(drift) )
+        
+            
+            next_pos = tuple(self._limit_coordinates(current_pos +self.action_to_action_in_array[action]+np.array(drift)).astype(int))
             # accumlate the pobability 
+            print('             next pos:', next_pos)
             if next_pos in next_pos_to_prob:
                 # note that there, next_pos is a tuple
                 next_pos_to_prob[next_pos] +=drift_prob[drift] # drift is also a tuple
             else:
                 next_pos_to_prob[next_pos] = drift_prob[drift]
-        
+            
         # finally, get a list of all (probability, state, reward, done):
         for next_pos in next_pos_to_prob:
             reward = self.terminal_reward[next_pos[0], next_pos[1]]
@@ -275,6 +283,7 @@ class RandomWalk(discrete.DiscreteEnv):
             done = bool(reward)
             next_pos_in_s = self.grid[next_pos[0], next_pos[1]]
             transition_list.append((next_pos_to_prob[next_pos], next_pos_in_s, reward, done ))
+        print('\n')
         return transition_list
         
     def render(self, mode ='human', close = False):
@@ -301,21 +310,31 @@ class RandomWalk(discrete.DiscreteEnv):
         it = np.nditer(grid, flags =['multi_index'])
         while not it.finished:
             s = it.iterindex
+        
+            # the position of the state:
             y, x = it.multi_index 
 
+            # position of the current state, marked as x
             if self.s == s:
-                output = "x"
+                output = " x "
+            # mark the terminal states with pos reward
             elif self.terminal_reward[y,x] == self.reward_into_pos_term_states :
-                output = "W"
+                output = f"{self.reward_into_pos_term_states}"
+            # mark the terminal states with neg reward
             elif self.terminal_reward[y,x] == self.reward_into_neg_term_states:
-                output = "L"
+                output = f"{self.reward_into_neg_term_states}"
             else:
-                output = "o"
+                output = " O "
 
+            # when the position of the state is at the far left:
             if x == 0:
                 output = output.lstrip()
+            # when the position of the state is at the far right:
             if x == self.shape[1] - 1:
                 output = output.rstrip()
+                # next line
+                output += "\n" 
+
 
             outfile.write(output)
 
