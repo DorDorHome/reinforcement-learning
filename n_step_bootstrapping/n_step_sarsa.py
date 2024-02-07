@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import gym
+#import gym
+import gymnasium as gym
 import itertools
 import matplotlib
 matplotlib.use('Agg')
