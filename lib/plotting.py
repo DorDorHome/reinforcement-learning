@@ -55,10 +55,39 @@ def plot_value_function_of_grid_world(V, title = 'Value Function over grid space
         ax.set_zlabel('Value')
         ax.set_title(title)
         ax.view_init(ax.elev, -120)
+        ax.invert_yaxis() 
         fig.colorbar(surf)
         plt.show()
 
-    plot_surface(X, Y, Z, f'{title}')
+    def plot_3d_barchart(X, Y, Z, title):
+        fig = plt.figure(figsize=(20, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Size of the bars
+        dx = dy = 0.75  # Width and depth of the bars
+        dz = Z.flatten()  # Heights of the bars
+        
+        # Coordinates for the bars
+        xpos = X.flatten()
+        ypos = Y.flatten()
+        zpos = np.zeros_like(dz)  # All bars starting at z=0
+        
+        # Plotting the bars
+        ax.bar3d(xpos, ypos, zpos, dx, dy, dz, cmap=matplotlib.cm.coolwarm)
+        
+        # Labels and title
+        ax.set_xlabel('x-direction')
+        ax.set_ylabel('y-direction')
+        ax.set_zlabel('Value')
+        ax.set_title(title)
+        
+        # Inverting y axis
+        ax.invert_yaxis()
+        
+        plt.show()
+    
+    plot_3d_barchart(X, Y, Z, f'{title}')
+    # plot_surface(X, Y, Z, f'{title}')
 
 
 

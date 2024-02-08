@@ -45,8 +45,8 @@ class RandomWalk(discrete.DiscreteEnv):
 
 
         # 1. defines a grid-like world for random walk to "walk" on
-        if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
-            raise ValueError('shape argument must be a list/tuple of length 2')
+        # if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
+        #     raise ValueError('shape argument must be a list/tuple of length 2')
         self.shape = shape 
 
 
@@ -57,7 +57,11 @@ class RandomWalk(discrete.DiscreteEnv):
         ## the number of actions depends on whether
         ## the grid is 1d or 2d
         ## if 1d, the number of actions is 3 (left, right, stay)
-        nA = 2**len(shape) + 1
+         
+        if shape[0] ==1 or shape[1]==1:
+            nA = 3
+        else:
+            nA =5
         self.action_to_action_in_array = {}
         if nA ==3:
             self.action_to_action_in_array[STAY] = np.array([ 0, 0])
