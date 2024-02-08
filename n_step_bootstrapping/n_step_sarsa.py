@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 if "../" not in sys.path:
     sys.path.append("../") 
 
+# added by Alvin:
+from pathlib import Path 
+# Add the parent directory to sys.path to find the lib package
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 from collections import defaultdict
 from lib.envs.windy_gridworld import WindyGridworldEnv
 from lib import plots
