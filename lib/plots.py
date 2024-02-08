@@ -144,13 +144,21 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False, file=None):
     plt.xlabel("Episode")
     plt.ylabel("Episode Length")
     plt.title("Episode Length over Time")
+    # if noshow:
+    #     plt.close(fig1)
+    # else:
+    #     if file is None:
+    #         plt.show()
+    #     else:
+    #         plt.savefig(file+'Episode_length_over_time.png')
+
+
     if noshow:
         plt.close(fig1)
     else:
-        if file is None:
-            plt.show(fig1)
-        else:
-            plt.savefig(file+'Episode_length_over_time.png')
+        if file:
+            plt.savefig(os.path.join(file, 'Episode_length_over_time.png'))
+        plt.show()  # Display the figure
 
     # Plot the episode reward over time
     fig2 = plt.figure(figsize=(10,5))
@@ -163,7 +171,7 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False, file=None):
         plt.close(fig2)
     else:
         if file is None:
-            plt.show(fig2)
+            plt.show()
         else:
             plt.savefig(file+'Episode_reward_over_time.png')
 
@@ -177,7 +185,7 @@ def plot_episode_stats(stats, smoothing_window=10, noshow=False, file=None):
         plt.close(fig3)
     else:
         if file is None:
-            plt.show(fig3)
+            plt.show()
         else:
             plt.savefig(file+'Episode_per_time_step.png')
 

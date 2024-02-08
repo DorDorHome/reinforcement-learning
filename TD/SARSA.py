@@ -75,7 +75,7 @@ def sarsa(env, num_episodes, discount_factor=1.0, alpha=0.5, epsilon=0.1):
     
     for i_episode in range(num_episodes):
         # Print out which episode we're on, useful for debugging.
-        if (i_episode + 1) % 100 == 0:
+        if (i_episode + 1) % 10 == 0:
             print("\rEpisode {}/{}.".format(i_episode + 1, num_episodes), end="")
             sys.stdout.flush()
         
