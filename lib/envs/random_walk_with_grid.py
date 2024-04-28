@@ -4,6 +4,9 @@
 ## Random walk in example 6.2 of the book
 #Reinforcemen Learning: An introduction
 
+# to-do-list:
+# to give the options of using list/sets in pos/negative terminal position
+
 import io
 # import gym
 import gymnasium as gym
@@ -38,19 +41,20 @@ class RandomWalk(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, shape = [1, 7], positive_terminal_states = None,
-                 negative_terminal_states = None, reward_into_pos_term_states = 1,
+    def __init__(self, shape = [1, 7], positive_terminal_pos = None, negative_terminal_pos = None,
+                 reward_into_pos_term_states = 1,
                  reward_into_neg_term_states = -1, drift_vector_prob = None, initial_state_distribution = None):
         
-
+        self.space_is_1d = None
 
         # 1. defines a grid-like world for random walk to "walk" on
         # if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
         #     raise ValueError('shape argument must be a list/tuple of length 2')
         self.shape = shape 
+        
 
-
-        # 2. the number of states:
+        # 2.
+        # calculate and save the number of states:
         nS = np.prod(shape)
 
         # 3. number of actions in each state (except terminal states)
@@ -58,24 +62,36 @@ class RandomWalk(discrete.DiscreteEnv):
         ## the grid is 1d or 2d
         ## if 1d, the number of actions is 3 (left, right, stay)
          
-        if shape[0] ==1 or shape[1]==1:
+        if len(shape) == 2 and (shape[0] ==1 or shape[1]==1):
+            self.space_is_1d = True
             nA = 3
-        else:
+            
+        elif len(shape) ==2:
+            # covering the case where at least one dimension in shape is greater than one:
+            self.space_is_1d = False
             nA =5
+
+        else:
+            # covering l
+            raise ValueError('please check shape, only support 2d grid. For 1d grid,\
+                              please enter as 2d grid with one dimension set to 1')
+        
         self.action_to_action_in_array = {}
-        if nA ==3:
+        if self.space_is_1d:
             self.action_to_action_in_array[STAY] = np.array([ 0, 0])
             self.action_to_action_in_array[RIGHT] = np.array([0, 1])
             self.action_to_action_in_array[LEFT] = np.array([0,-1])
-        elif nA ==5:
+        else:
             self.action_to_action_in_array[STAY] = np.array([ 0, 0])
             self.action_to_action_in_array[RIGHT] = np.array([0, 1])
             self.action_to_action_in_array[LEFT] = np.array([0,-1])
             self.action_to_action_in_array[UP] = np.array([-1, 0])
             self.action_to_action_in_array[DOWN] = np.array([1,0])
-        else:
-            raise ValueError('please check shape, only support 1d or 2d grid.')
+
             
+        ## save all available action in array form:
+        self.action_arrays = [ action_array for action_array in self.action_to_action_in_array.values() ]
+
 
 
         # the height of the space:
@@ -84,19 +100,33 @@ class RandomWalk(discrete.DiscreteEnv):
         MAX_x = shape[1]
 
         if drift_vector_prob is not None :
-            # check the entered drift_vector_prob adds up to one:
+            # 1. check the entered drift_vector_prob adds up to one:
             check_drift_prob_sum = 0
             for prob in drift_vector_prob.values():
                 check_drift_prob_sum += prob
             assert check_drift_prob_sum == 1
-            # check the possible drift direction is of shape (2,) and has integer values
+            # 2. check the possible drift direction is of shape (2,) and has integer values
             for vec in drift_vector_prob:
                 assert vec.shape == (2,)
                 assert isinstance(vec[0], np.int64) 
                 assert isinstance(vec[1], np.int64)
+
+            # 3. check the number of items matches the number of available actions:
+            assert len(self.action_arrays) == len(drift_vector_prob.keys())
+
+
+            # save it as an attribute:
             self.drift_vector_prob = drift_vector_prob
-        else:
-            if len(self.shape) ==2:
+
+        elif drift_vector_prob is None: 
+        # set drift vector prob to be equal probability if not set
+            if self.space_is_1d:
+                self.drift_vector_prob = {
+                    (0,1): 0.5, #RIGHT
+                    (0, -1): 0.5, #LEFT
+                    (0, 0): 0  #STAY
+                }
+            else :
                 self.drift_vector_prob = {
 
                     (0,1): 0.25, #RIGHT
@@ -105,12 +135,8 @@ class RandomWalk(discrete.DiscreteEnv):
                     (-1, 0): 0.25,#UP
                     (0, 0): 0  #STAY
                 }
-            elif len(self.shape) ==1:
-                self.drift_vector_prob = {
-                    (0,1): 0.5, #RIGHT
-                    (0, -1): 0.5, #LEFT
-                    (0, 0): 0  #STAY
-                }
+
+
 
 
         print('drift vector prob:', self.drift_vector_prob)
@@ -126,38 +152,58 @@ class RandomWalk(discrete.DiscreteEnv):
         # and store them in an array to give it a natural geometric structure:
         grid = np.arange(nS).reshape(shape)
         self.grid = grid
-        # check
-        if positive_terminal_states:
-            assert isinstance(positive_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
-            # check terminal shape and grid shape the same:
-            assert grid.shape == positive_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
-        if negative_terminal_states:
-            assert isinstance(negative_terminal_states, np.ndarray), 'please enter a numpy array as terminal states'
-            assert grid.shape == negative_terminal_states.shape, " terminal state shape needs to be the same as grid shape!"
-        if positive_terminal_states and negative_terminal_states:
-            overlap = np.logical_and(positive_terminal_states, negative_terminal_states)
-            assert not overlap.any(), "positive and neg term states overlapped!"
+        
+        if positive_terminal_pos is None:# define default positive terminal states position:
+            # bottom right is positive
+            positive_terminal_pos = np.array((self.grid.shape[0] -1 , self.grid.shape[1] -1))
+        if negative_terminal_pos is None: # likewise for negative terminal states:
+            # top left is negative:
+            negative_terminal_pos = np.array((0,0))
+
+        print(negative_terminal_pos)
+
+        print(positive_terminal_pos)
 
 
-        # set location of terminal state:
-        terminal_reward = np.zeros(shape)
-        if positive_terminal_states == None:
-            # set default terminal states to be the bottom right
-            terminal_reward[shape[0]-1, shape[1]-1] = reward_into_pos_term_states
+
+        assert isinstance(positive_terminal_pos, np.ndarray), 'please enter a numpy array as terminal states'
+
+        # check the positive terminal states is inside the grid
+
+
+        assert isinstance(negative_terminal_pos, np.ndarray), 'please enter a numpy array as terminal states'
+        # check for no overlap:
+        overlap = np.logical_and(positive_terminal_pos, negative_terminal_pos)
+        assert not overlap.any(), "positive and neg term states overlapped!"
+
+        if isinstance(positive_terminal_pos, list):
+            self.terminal_pos = positive_terminal_pos+ negative_terminal_pos
+        elif isinstance(positive_terminal_pos, np.ndarray):
+            self.terminal_pos = [positive_terminal_pos, negative_terminal_pos]
         else:
-            terminal_reward[positive_terminal_states] = reward_into_pos_term_states
+            raise TypeError
+
 
         
-        if negative_terminal_states == None:
-            # set default terminal states to be the top left:
-            terminal_reward[0,0] = reward_into_neg_term_states
-        else:
-            terminal_reward[negative_terminal_states] =reward_into_neg_term_states
+        # # set location of terminal state:
+        # terminal_reward = np.zeros(shape)
+        # if positive_terminal_pos == None:
+        #     # set default terminal states to be the bottom right
+        #     terminal_reward[shape[0]-1, shape[1]-1] = reward_into_pos_term_states
+        # else:
+        #     terminal_reward[positive_terminal_pos] = reward_into_pos_term_states
 
-        print(f'here is the world, with {reward_into_pos_term_states} indicating positive terminal states.\
-              and {reward_into_neg_term_states} indicating negative terminal states: ')
-        # print_board(terminal_reward, reward_into_pos_term_states = reward_into_pos_term_states, reward_into_neg_term_states= reward_into_neg_term_states)
-        self.terminal_reward = terminal_reward
+        
+        # if negative_terminal_pos == None:
+        #     # set default terminal states to be the top left:
+        #     terminal_reward[0,0] = reward_into_neg_term_states
+        # else:
+        #     terminal_reward[negative_terminal_pos] =reward_into_neg_term_states
+
+        # print(f'here is the world, with {reward_into_pos_term_states} indicating positive terminal states.\
+        #       and {reward_into_neg_term_states} indicating negative terminal states: ')
+        # # print_board(terminal_reward, reward_into_pos_term_states = reward_into_pos_term_states, reward_into_neg_term_states= reward_into_neg_term_states)
+        # self.terminal_reward = terminal_reward
 
         # set up reset state distribution:
         if initial_state_distribution == None:
@@ -165,7 +211,7 @@ class RandomWalk(discrete.DiscreteEnv):
             print('initializing position is in middle')
             start_y = shape[0]//2
             start_x = shape[1]//2
-            # this is defines the initial state distribution:
+            # this defines the initial state distribution:
             isd[start_y, start_x] =1
 
 
@@ -196,43 +242,48 @@ class RandomWalk(discrete.DiscreteEnv):
             P[s] = {a: [ ] for a in range(nA) }
 
             # to check whether s is a terminal state:
-            is_done = bool(terminal_reward[y][x])
+            is_done = np.array(y, x) in self.terminal_pos  #bool(terminal_reward[y][x])
             print('is done:', is_done)
             if is_done:
+                # set all actions to have no effect (next_state = s, and reward = 0), with probability one
                 
-                P[s][UP] = [(1.0, s, 0, True)]
-                P[s][DOWN] = [(1.0, s,  0, True)]
-                P[s][RIGHT] = [(1.0, s,  0, True)]
-                P[s][LEFT] = [(1.0, s,  0, True)]
-                P[s][STAY] = [(1.0, s,  0, True)]
+                for a in range(self.nA):
+                    P[s][a] = [(1.0, s, 0, True)]
+                # P[s][UP] = [(1.0, s, 0, True)]
+                # P[s][DOWN] = [(1.0, s,  0, True)]
+                # P[s][RIGHT] = [(1.0, s,  0, True)]
+                # P[s][LEFT] = [(1.0, s,  0, True)]
+                # P[s][STAY] = [(1.0, s,  0, True)]
 
             # the reward and whether a state is 
             else:
-                P[s][UP] = self._get_transition_prob_from_combined_effect(pos_np, UP,self.drift_vector_prob )
-                # print('initial position: [',  y, x, ']' )
-                # print('action: up')
-                # print('transition probability: ', P[s][UP] )
-                P[s][DOWN] = self._get_transition_prob_from_combined_effect(pos_np,DOWN, self.drift_vector_prob )
-                # print('initial position: [',  y, x, ']' )
-                # print('action: DOWN')
-                # print('transition probability: ', P[s][DOWN] )
+                for a in range(self.nA):
+                    P[s][a]= self._get_transition_prob_from_combined_effect(pos_np, a,self.drift_vector_prob )
+                # P[s][UP] = self._get_transition_prob_from_combined_effect(pos_np, UP,self.drift_vector_prob )
+                # # print('initial position: [',  y, x, ']' )
+                # # print('action: up')
+                # # print('transition probability: ', P[s][UP] )
+                # P[s][DOWN] = self._get_transition_prob_from_combined_effect(pos_np,DOWN, self.drift_vector_prob )
+                # # print('initial position: [',  y, x, ']' )
+                # # print('action: DOWN')
+                # # print('transition probability: ', P[s][DOWN] )
                 
-                P[s][RIGHT] = self._get_transition_prob_from_combined_effect(pos_np, RIGHT,self.drift_vector_prob )
-                # print('initial position: [',  y, x, ']' )
-                # print('action: RIGHT')
-                # print('transition probability: ', P[s][RIGHT] )
+                # P[s][RIGHT] = self._get_transition_prob_from_combined_effect(pos_np, RIGHT,self.drift_vector_prob )
+                # # print('initial position: [',  y, x, ']' )
+                # # print('action: RIGHT')
+                # # print('transition probability: ', P[s][RIGHT] )
                 
-                P[s][LEFT] = self._get_transition_prob_from_combined_effect(pos_np, LEFT,self.drift_vector_prob )
+                # P[s][LEFT] = self._get_transition_prob_from_combined_effect(pos_np, LEFT,self.drift_vector_prob )
                 
-                # print('initial position: [',  y, x, ']' )
-                # print('action: LEFT')
-                # print('transition probability: ', P[s][LEFT] )
+                # # print('initial position: [',  y, x, ']' )
+                # # print('action: LEFT')
+                # # print('transition probability: ', P[s][LEFT] )
                 
-                P[s][STAY]  = self._get_transition_prob_from_combined_effect(pos_np, STAY,self.drift_vector_prob )
+                # P[s][STAY]  = self._get_transition_prob_from_combined_effect(pos_np, STAY,self.drift_vector_prob )
 
-                # print('initial position: [',  y, x, ']' )
-                # print('action: STAY')
-                # print('transition probability: ', P[s][STAY] )
+                # # print('initial position: [',  y, x, ']' )
+                # # print('action: STAY')
+                # # print('transition probability: ', P[s][STAY] )
             it.iternext()
 
 
