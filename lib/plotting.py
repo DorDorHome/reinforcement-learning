@@ -26,68 +26,107 @@ def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20):
 
 def plot_value_function_of_grid_world(V, title = 'Value Function over grid space', shape = None):
     """
-    plots the value function using V, and give the shape of the grid world
+    plots the value function using V, and given the shape of the grid world
     
     V is over state space, { 0, 1, 2, .....}
-    shape is needed.
+    shape: a tuple. The space is structured in this way: grid_world = np.arange(env.nS).reshape(shape)
 
     """
+    if shape is None:
+        raise ValueError("Shape parameter is required to visualize the value function.")
 
-    min_x = 0
-
-    max_x = shape[1] -1
-    min_y = 0
-    max_y = shape[0] -1
-
-    x_range = np.arange(min_x, max_x + 1)
-    y_range = np.arange(min_y, max_y + 1)
-    X, Y = np.meshgrid(x_range, y_range)
-
-    Z = np.apply_along_axis(lambda _: V[ _[0]*max_x+ _[1]], 2, np.dstack([X, Y]))
-
-    def plot_surface(X, Y, Z, title):
-        fig = plt.figure(figsize=(20, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                               cmap=matplotlib.cm.coolwarm, vmin=-1.0, vmax=1.0)
-        ax.set_xlabel('x-direction')
-        ax.set_ylabel('y-direction')
-        ax.set_zlabel('Value')
-        ax.set_title(title)
-        ax.view_init(ax.elev, -120)
-        ax.invert_yaxis() 
-        fig.colorbar(surf)
-        plt.show()
-
-    def plot_3d_barchart(X, Y, Z, title):
-        fig = plt.figure(figsize=(20, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Size of the bars
-        dx = dy = 0.75  # Width and depth of the bars
-        dz = Z.flatten()  # Heights of the bars
-        
-        # Coordinates for the bars
-        xpos = X.flatten()
-        ypos = Y.flatten()
-        zpos = np.zeros_like(dz)  # All bars starting at z=0
-        
-        # Plotting the bars
-        ax.bar3d(xpos, ypos, zpos, dx, dy, dz, cmap=matplotlib.cm.coolwarm)
-        
-        # Labels and title
-        ax.set_xlabel('x-direction')
-        ax.set_ylabel('y-direction')
-        ax.set_zlabel('Value')
-        ax.set_title(title)
-        
-        # Inverting y axis
-        ax.invert_yaxis()
-        
-        plt.show()
+    # Initialize a grid of the specified shape with zeros
+    grid = np.zeros(shape)
     
-    plot_3d_barchart(X, Y, Z, f'{title}')
-    # plot_surface(X, Y, Z, f'{title}')
+    # Fill the grid with values from V
+    for state, value in V.items():
+        # Calculate the position in the grid from the state index
+        row, col = divmod(state, shape[1])
+        grid[row, col] = value
+
+    # Create a figure and a 3D subplot
+    fig = plt.figure(figsize=(10, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Create a meshgrid to align the bars
+    xpos, ypos = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+    xpos = xpos.flatten()
+    ypos = ypos.flatten()
+    zpos = np.zeros_like(xpos)
+
+    # Bar dimensions
+    dx = dy = 0.8
+    dz = grid.flatten()
+
+    # Plot
+    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color='b', alpha=0.8)
+    ax.set_title(title)
+    ax.set_xlabel('Column')
+    ax.set_ylabel('Row')
+    ax.set_zlabel('Value')
+
+    # Set the ticks for the x and y axes
+    ax.set_xticks(np.arange(shape[1]) + dx/2)
+    ax.set_xticklabels(np.arange(shape[1]))
+    ax.set_yticks(np.arange(shape[0]) + dy/2)
+    ax.set_yticklabels(np.arange(shape[0]))
+
+    plt.show()
+    # min_x = 0
+
+    # max_x = shape[1] -1
+    # min_y = 0
+    # max_y = shape[0] -1
+
+    # x_range = np.arange(min_x, max_x + 1)
+    # y_range = np.arange(min_y, max_y + 1)
+    # X, Y = np.meshgrid(x_range, y_range)
+
+    # Z = np.apply_along_axis(lambda _: V[ _[0]*max_x+ _[1]], 2, np.dstack([X, Y]))
+
+    # def plot_surface(X, Y, Z, title):
+    #     fig = plt.figure(figsize=(20, 10))
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+    #                            cmap=matplotlib.cm.coolwarm, vmin=-1.0, vmax=1.0)
+    #     ax.set_xlabel('x-direction')
+    #     ax.set_ylabel('y-direction')
+    #     ax.set_zlabel('Value')
+    #     ax.set_title(title)
+    #     ax.view_init(ax.elev, -120)
+    #     ax.invert_yaxis() 
+    #     fig.colorbar(surf)
+    #     plt.show()
+
+    # def plot_3d_barchart(X, Y, Z, title):
+    #     fig = plt.figure(figsize=(20, 10))
+    #     ax = fig.add_subplot(111, projection='3d')
+        
+    #     # Size of the bars
+    #     dx = dy = 0.75  # Width and depth of the bars
+    #     dz = Z.flatten()  # Heights of the bars
+        
+    #     # Coordinates for the bars
+    #     xpos = X.flatten()
+    #     ypos = Y.flatten()
+    #     zpos = np.zeros_like(dz)  # All bars starting at z=0
+        
+    #     # Plotting the bars
+    #     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, cmap=matplotlib.cm.coolwarm)
+        
+    #     # Labels and title
+    #     ax.set_xlabel('x-direction')
+    #     ax.set_ylabel('y-direction')
+    #     ax.set_zlabel('Value')
+    #     ax.set_title(title)
+        
+    #     # Inverting y axis
+    #     ax.invert_yaxis()
+        
+    #     plt.show()
+    
+    # plot_3d_barchart(X, Y, Z, f'{title}')
+    # # plot_surface(X, Y, Z, f'{title}')
 
 
 

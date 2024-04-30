@@ -6,6 +6,8 @@
 
 # to-do-list:
 # to give the options of using list/sets in pos/negative terminal position
+# the super.__init__ in RandomWalk might override (and thus make unnecessary) the definition of
+# self.P, self.nS and self.nA
 
 import io
 # import gym
@@ -37,13 +39,18 @@ class RandomWalk(discrete.DiscreteEnv):
 
     When reaching an edge, if the combined action of agent or the environment moves the agent towards outside 
     
+    explanation of selected variables:
+
+    reward_grid: a grid to indicate that what rewards will be stepping into the cell in the grid
+
+
     """
 
     metadata = {'render.modes': ['human', 'ansi']}
 
     def __init__(self, shape = [1, 7], positive_terminal_pos = None, negative_terminal_pos = None,
                  reward_into_pos_term_states = 1,
-                 reward_into_neg_term_states = -1, drift_vector_prob = None, initial_state_distribution = None):
+                 reward_into_neg_term_states = -1, reward_grid = None,  drift_vector_prob = None, initial_state_distribution = None):
         
         self.space_is_1d = None
 
@@ -65,10 +72,12 @@ class RandomWalk(discrete.DiscreteEnv):
         if len(shape) == 2 and (shape[0] ==1 or shape[1]==1):
             self.space_is_1d = True
             nA = 3
+            print('space is 1d')
             
         elif len(shape) ==2:
             # covering the case where at least one dimension in shape is greater than one:
             self.space_is_1d = False
+            print('space is 2d')
             nA =5
 
         else:
@@ -155,36 +164,59 @@ class RandomWalk(discrete.DiscreteEnv):
         
         if positive_terminal_pos is None:# define default positive terminal states position:
             # bottom right is positive
-            positive_terminal_pos = np.array((self.grid.shape[0] -1 , self.grid.shape[1] -1))
+            positive_terminal_pos = (self.grid.shape[0] -1 , self.grid.shape[1] -1)
         if negative_terminal_pos is None: # likewise for negative terminal states:
             # top left is negative:
-            negative_terminal_pos = np.array((0,0))
+            negative_terminal_pos = (0,0)
 
+        self.positive_terminal_pos = positive_terminal_pos
+        self.negative_terminal_pos = negative_terminal_pos
         print(negative_terminal_pos)
 
         print(positive_terminal_pos)
 
 
 
-        assert isinstance(positive_terminal_pos, np.ndarray), 'please enter a numpy array as terminal states'
+        assert isinstance(positive_terminal_pos, tuple), 'please enter a numpy array as terminal states'
 
         # check the positive terminal states is inside the grid
 
 
-        assert isinstance(negative_terminal_pos, np.ndarray), 'please enter a numpy array as terminal states'
+        assert isinstance(negative_terminal_pos, tuple), 'please enter a numpy array as terminal states'
         # check for no overlap:
-        overlap = np.logical_and(positive_terminal_pos, negative_terminal_pos)
-        assert not overlap.any(), "positive and neg term states overlapped!"
+        # overlap = np.logical_and(np.array(positive_terminal_pos), np.array(negative_terminal_pos))
+        # assert not overlap.any(), "positive and neg term states overlapped!"
 
         if isinstance(positive_terminal_pos, list):
             self.terminal_pos = positive_terminal_pos+ negative_terminal_pos
-        elif isinstance(positive_terminal_pos, np.ndarray):
+        elif isinstance(positive_terminal_pos, tuple):
             self.terminal_pos = [positive_terminal_pos, negative_terminal_pos]
         else:
             raise TypeError
 
+        print('terminal_pos is', self.terminal_pos)
+        # next, define the reward of stepping into a cell:
+
+        if reward_grid == None:
+            # default is, all rewards are zero, except when specified otherwise
+            # and except in the designated pos and neg terminal pos
+            self.reward_grid = np.zeros(self.grid.shape)
+        else:
+            assert reward_grid.dtype == float, 'rewards can only be floats! '
+            assert reward_grid.shape == shape, 'the shape of reward'
+            self.reward_grid = np.array(reward_grid)
+
+        # at positive terminal pos:
+        self.reward_grid[positive_terminal_pos] = reward_into_pos_term_states
+
+        # at negative terminal pos:
+        self.reward_grid[negative_terminal_pos] = reward_into_neg_term_states
 
         
+
+
+
+        # not used:
         # # set location of terminal state:
         # terminal_reward = np.zeros(shape)
         # if positive_terminal_pos == None:
@@ -242,12 +274,12 @@ class RandomWalk(discrete.DiscreteEnv):
             P[s] = {a: [ ] for a in range(nA) }
 
             # to check whether s is a terminal state:
-            is_done = np.array(y, x) in self.terminal_pos  #bool(terminal_reward[y][x])
+            is_done = (y, x) in self.terminal_pos  #bool(terminal_reward[y][x])
             print('is done:', is_done)
             if is_done:
                 # set all actions to have no effect (next_state = s, and reward = 0), with probability one
                 
-                for a in range(self.nA):
+                for a in range(nA):
                     P[s][a] = [(1.0, s, 0, True)]
                 # P[s][UP] = [(1.0, s, 0, True)]
                 # P[s][DOWN] = [(1.0, s,  0, True)]
@@ -257,7 +289,7 @@ class RandomWalk(discrete.DiscreteEnv):
 
             # the reward and whether a state is 
             else:
-                for a in range(self.nA):
+                for a in range(nA):
                     P[s][a]= self._get_transition_prob_from_combined_effect(pos_np, a,self.drift_vector_prob )
                 # P[s][UP] = self._get_transition_prob_from_combined_effect(pos_np, UP,self.drift_vector_prob )
                 # # print('initial position: [',  y, x, ']' )
@@ -332,7 +364,7 @@ class RandomWalk(discrete.DiscreteEnv):
             
             next_pos = tuple(self._limit_coordinates(current_pos +self.action_to_action_in_array[action]+np.array(drift)).astype(int))
             # accumlate the pobability 
-            print('             next pos:', next_pos)
+            print('next pos:', next_pos)
             if next_pos in next_pos_to_prob:
                 # note that there, next_pos is a tuple
                 next_pos_to_prob[next_pos] +=drift_prob[drift] # drift is also a tuple
@@ -341,7 +373,7 @@ class RandomWalk(discrete.DiscreteEnv):
             
         # finally, get a list of all (probability, state, reward, done):
         for next_pos in next_pos_to_prob:
-            reward = self.terminal_reward[next_pos[0], next_pos[1]]
+            reward = self.reward_grid[next_pos[0], next_pos[1]]
             #print(f'reward from {current_pos} to {next_pos} is {reward}')
             done = bool(reward)
             next_pos_in_s = self.grid[next_pos[0], next_pos[1]]
@@ -381,10 +413,10 @@ class RandomWalk(discrete.DiscreteEnv):
             if self.s == s:
                 output = " x "
             # mark the terminal states with pos reward
-            elif self.terminal_reward[y,x] == self.reward_into_pos_term_states :
+            elif (y,x) == self.positive_terminal_pos :
                 output = f"{self.reward_into_pos_term_states}"
             # mark the terminal states with neg reward
-            elif self.terminal_reward[y,x] == self.reward_into_neg_term_states:
+            elif (y,x) == self.negative_terminal_pos:
                 output = f"{self.reward_into_neg_term_states}"
             else:
                 output = " O "
