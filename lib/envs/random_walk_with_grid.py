@@ -359,12 +359,12 @@ class RandomWalk(discrete.DiscreteEnv):
  
         for drift in drift_prob:
             # next position is the combined effect of current position and drift:
-            print('before limiting coord: ',current_pos +self.action_to_action_in_array[action]+np.array(drift) )
+            # print('before limiting coord: ',current_pos +self.action_to_action_in_array[action]+np.array(drift) )
         
             
             next_pos = tuple(self._limit_coordinates(current_pos +self.action_to_action_in_array[action]+np.array(drift)).astype(int))
             # accumlate the pobability 
-            print('next pos:', next_pos)
+            # print('next pos:', next_pos)
             if next_pos in next_pos_to_prob:
                 # note that there, next_pos is a tuple
                 next_pos_to_prob[next_pos] +=drift_prob[drift] # drift is also a tuple
