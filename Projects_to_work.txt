@@ -1,0 +1,25 @@
+
+
+1. # variety for env:
+
+1.1 action space of each state:
+In most algorithm (notably,SARSA and the Q-learning),
+the Q function is initialized as a nested dictionary, which assumes that in each state,
+the number of available actions is the same (regardless of the state)
+Try to loosen this requirement.
+
+1.2 number of state: 
+Is the number of state known beforehand? Can we solve a problem only with ways to encode the state,
+but the nubmer of state is unknown beforehand?
+
+1.3 discretizing continuous space: how to apply the algorithm to continuous space (rather than discrete)
+
+
+---------
+Types of algorithms:
+
+Dyna, Dyna-Q+, random_sample_one_step_Q_planning
+debug ! 
+
+in random_sample_one_step_Q_planning, the reduction of alpha might need to tie to how many each state has been updated.
+
