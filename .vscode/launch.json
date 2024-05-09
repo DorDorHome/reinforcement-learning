@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
     
         {
             "name": "Python with Gymnaisum: Current File",
@@ -11,7 +12,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "cwd": "${/Users/shufaichan/Desktop/reinforcement_learning_models/learning_gynasium_with_textbook_exercises/reinforcement-learning/Dyna_planning_planning}",
             "python": "/Users/shufaichan/anaconda3/envs/RL_with_gymnasium/bin/python"
         }
     ]

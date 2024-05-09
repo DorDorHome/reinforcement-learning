@@ -20,7 +20,14 @@ import numpy as np
 import pandas as pd
 import sys
 
+# add parent directory into sys.path
+if "../" not in sys.path:
+    sys.path.append("../")
+    
+sys.path.append("/Users/shufaichan/Desktop/reinforcement_learning_models/learning_gynasium_with_textbook_exercises/reinforcement-learning")
+
 from collections import defaultdict
+
 from lib import plotting
 
 def random_sample_one_step_Q_planning(env, num_updates_for_each_state = None, randomize_state_action = False,  discount_factor = 1.0, alpha = 0.5, reduce_alpha_by_cycle = False,  convergence_criterion = 0.01 ):
@@ -169,12 +176,14 @@ def tabular_Dyna_Q(env, num_real_episode = 100, num_loop_in_between_real = 50, a
     epsilon_greedy_policy = make_epsilon_greedy_policy(Q, epsilon, env.action_space.n)
 
     for epi in itertools.count(): # keep track of the number of episode
+        if epi +1 > num_real_episode:
+            break
         # Print out which episode we're on, useful for debugging.
         if (epi+ 1) % 100 == 0:
-            print("\rEpisode {}/{}.".format(epi + 1, num_episodes), end="")
+            print("\rEpisode {}/{}.".format(epi + 1, num_real_episode), end="")
             sys.stdout.flush()
         state = env.reset()
-        for step in itertools.count():
+        for t in itertools.count():
             action_probs = epsilon_greedy_policy(state)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
             next_state, reward, done, _ = env.step(action)
@@ -197,7 +206,7 @@ def tabular_Dyna_Q(env, num_real_episode = 100, num_loop_in_between_real = 50, a
                 # get state that appeared from model:
                 mock_state = np.random.choice(list(model.keys()))
                 # get action previous taken:
-                mock_action = np.random.choice(model[state].keys())
+                mock_action = np.random.choice(list(model[mock_state].keys()))
                 model_reward, model_next_state = model[mock_state][mock_action]
                 # update:
                 td_target = model_reward + discount_factor*np.max(Q[model_next_state])
@@ -213,8 +222,7 @@ def tabular_Dyna_Q(env, num_real_episode = 100, num_loop_in_between_real = 50, a
             if done:
                 break# quit this episode, go to the next one
     # condition for quiting all episode:
-        if epi > num_real_episode:
-            break
+
     
     return Q, stats, model
     
@@ -222,3 +230,9 @@ def tabular_Dyna_Q(env, num_real_episode = 100, num_loop_in_between_real = 50, a
 
 def tabular_Dyna_Q_plus():
     pass
+
+# if __name__ == "main":
+from lib.envs.cliff_walking import CliffWalkingEnv
+clif_env = CliffWalkingEnv()
+Q_dyna, stats, model = tabular_Dyna_Q(clif_env, num_real_episode = 500, num_loop_in_between_real = 50, alpha = 0.5, discount_factor = 1.0, epsilon = 0.1)
+print(Q_dyna)
