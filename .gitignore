@@ -1,3 +1,9 @@
+
+#OS specific:
+.DS_Store
+
+
+# experimental results:
 n_step_bootstrapping/results
 
 ### Python ###
